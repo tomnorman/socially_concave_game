@@ -1,0 +1,593 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amsfonts,amssymb,amsthm}
+\usepackage{times}
+\usepackage{enumerate} 
+\usepackage{geometry}
+\geometry{verbose,tmargin=2cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+
+\makeatletter
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{claim}[theorem]{Claim}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{definition}
+\newtheorem{example}[theorem]{Example}
+
+\makeatother
+
+
+%%% fill in details here
+\def \lecturenum  {1}
+\def \lecturedate {February 4, 2019}
+%%%
+
+\begin{document}
+
+%%% make header - do not modify! 
+\noindent
+\begin{minipage}[t]{1\columnwidth}%
+\textsc{Introduction to Online Learning}\hspace*{\fill}48717
+\vspace{2mm}
+
+\textsc{On the Convergence of Regret Minimization Dynamics in Concave
+Games}
+
+\noindent \rule[0.5ex]{1\linewidth}{1pt}
+
+\textsc{Tom Norman}
+\vspace{10mm}
+\end{minipage}
+%%%
+
+
+
+
+\hbadness=99999
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% BODY OF SCRIBE NOTES GOES HERE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\pr}[1]{\left( #1 \right)}
+\newcommand{\spr}[1]{\left\{ #1 \right\}}
+\newcommand{\mpr}[1]{\left[ #1 \right]}
+\newcommand{\set}[4]{\spr{#1}_{#2=#3}^{#4}}
+\newcommand{\defi}[1]{\text{Definition }\ref{#1}}
+\newcommand{\lemi}[1]{\text{Lemma }\ref{#1}}
+\newcommand{\thei}[1]{\text{Theorem }\ref{#1}}
+\newcommand{\equi}[1]{\text{Equation }(\ref{#1})}
+\newcommand{\fracc}[1]{\frac{1}{#1}}
+\newcommand{\ene}[1]{\epsilon^{#1}\text{-Nash equilibrium}}
+\newcommand{\ebr}[1]{\epsilon^{#1}\text{-best response}}
+
+\def\game{G = \pr{N, \set{S_i}{i}{1}{n}, \set{u_i}{i}{1}{n}}}
+\def\li{\lambda_i}
+\def\lj{\lambda_j}
+
+%\setlength{\parindent}{0cm}
+
+
+\begin{abstract}
+	In this survey we are going to define "socially" concave games, where by using no-external regret (no-regret as presented in class) algorithm the average actions of the players converge to Nash equilibrium.
+
+	We'll see 2 such games which presented in the paper and I'll add 1 more.
+\end{abstract}
+
+
+\section{Introduction}
+
+Nash equilibrium is where a game arrives to a steady state- each player doesn't have incentive to change her action given the other players actions. One issue is: how to get to this steady state?
+
+Socially concave games are sub-class of concave games (the payoff of each player is concave in her action) where the payoff of each player is convex in the actions of the other players and there exists a linear combination of the payoffs s.t. it's concave in the actions of all the players. 
+
+The paper \cite{conv} shows that following a regret minimization algorithm in socially concave games leads the average actions to be $\mathcal{O}(\frac{n}{\sqrt{T}})$ close to Nash equilibrium in T steps (n is the number of players). 3 such games are shown in the paper, from which 2 will be discussed here.
+
+Using online learning in games is intuitive- players need to make sequential decisions to maximize their payoff / minimize their regret. No regret algorithms are rational and distributed- meaning they correspond to the benefit of the player and require small information about the other players, so by employing one as a decision making tool the player is playing to her own benefit.
+
+In this survey I'll give the problem setup, the main results from the paper and will show that 3 games are socially concave. The proofs for lemmas and theorems will be in the appendix.
+
+
+\section{Problem setup}
+
+\subsection{Game model}
+
+$\game$ is a n-person game
+
+\begin{itemize}
+	\item
+		$N = \spr{1,2,...,n}$ - set of n players
+	\item
+		$S_i$ - set of possible actions for player i
+	\item
+		$S = S_1 \times S_2 \cdots S_n$ - joint actions set and $s \in S$ is called joint actions vector where
+		\begin{enumerate}
+			\item
+				$s_i$ is the i-th entry (which corresponds to the action of player i)
+			\item
+				$s_{-i}$ is the actions of the all players except player i
+		\end{enumerate}
+		$S$ is assumed to be closed, convex and bounded
+	\item
+		$u_i : S \rightarrow \mathbb{R}$ - player i's payoff function when joint actions vector $s \in S$ is played\\
+		$\pr{\text{note: $u_i(s) = u_i(s_i,s_{-i})$}}$\\
+		$u_i$ is assumed to be twice differentiable and bounded from above by 1
+\end{itemize}
+
+
+\begin{definition}[$\ebr{}$]
+	Action $x_i \in S_i$ is called $\ebr{}$ for $s_{-i}$ 
+if:\\
+	\indent$\forall y_i \in S_i : u_i(x_i, s_{-i}) \geq u_i(y_i, s_{-i}) - \epsilon$\\
+\end{definition}
+
+\begin{definition}[$\ene{}$]
+	$s \in S$ is $\ene{}$ if:\\
+	\indent$\forall i \in N : s_i$ is $\ebr{}$ to $s_{-i}$\\
+\end{definition}
+
+
+\begin{definition}[Concave Game]\label{ccg}
+	A game is called concave if:\\
+	\indent$\forall i \in N: u_i(s) = u_i(s_i,s_{-i})$ continuous in $s$ and concave in $s_i$\\
+\end{definition}
+
+\begin{definition}[Socially Concave Game]\label{sccg}
+	A game is called socially concave if:
+	\begin{enumerate}
+		\item
+			$\exists \lambda \in \Delta^n$ and $\forall i \in N: \lambda_i > 0$ s.t. $g(x) = \sum_{i \in N} \li u_i(x)$ concave in x
+		\item
+			$\forall i \in N: u_i(x_i,x_{-i})$ convex in $x_{-i}$ (the actions of the other players)\\
+	\end{enumerate}
+\end{definition}
+
+\begin{lemma}\label{soco}
+	Socially concave game is also a concave game.\\
+\end{lemma}
+
+Theorem 1 in \cite{concaveg} states that every concave game has a Nash equilibrium in $S$.
+Therefore, every socially concave game has a Nash equilibrium in S.
+
+
+
+
+
+
+\setlength{\parindent}{0cm}
+\subsection{Regret minimization}
+
+For convex loss functions the regret of player i defined as:\\
+$$Reg_i \pr{\set{x^t}{t}{1}{T}} = \sum_{t=1}^T f_t(x^t) - \underset{x \in \mathcal{K}}{\min} \sum_{t=1}^T f_t(x)$$
+
+We would like to minimize the regret so the cumulative losses are less or equal to the best fixed action in hindsight, in the paper it's called no-external regret.\\
+Because we're given payoffs and not losses we'll use the above definition where $u_i(x_i,x_{-i}) = -f_t(x)$:
+$$Reg_i \pr{\set{x^t}{t}{1}{T}} = -\sum_{t=1}^T \pr{-f_t(x^t)} + \underset{x \in \mathcal{K}}{\max} \sum_{t=1}^T \pr{-f_t(x)} = \underset{y_i \in S_i}{\max} \sum_{t=1}^T u_i(y_i, x_{-i}^t) - \sum_{t=1}^T u_i (x^t)$$
+And define $R_i(T) = \underset{\set{x^t}{t}{1}{T}}{\max} Reg_i \pr{\set{x^t}{t}{1}{T}}$ as the upper bound on $Reg_i(\cdot)$.\\
+Note that the upper bound on the regret is always non-negative i.e. $R_i(T) \geq 0$.
+
+
+
+
+\newcommand{\xh}[1]{\hat x^{#1}}
+\newcommand{\uh}[1]{\hat u^{#1}}
+\newcommand{\up}[3]{u_{#1} \pr{#2,#3}}
+\newcommand{\upi}[2]{u_i (#1,#2)}
+\newcommand{\upj}[2]{u_j (#1,#2)}
+
+\def\bri{BR_i\pr{\xh{t}_{-i}}}
+\def\brj{BR_j\pr{\xh{t}_{-j}}}
+\def\ot{\fracc{t}}
+\def\rit{R_i(t)}
+\def\rjt{R_j(t)}
+\def\si{\sum_{i=1}^n}
+\def\sj{\sum_{j=1}^n}
+\def\sta{\sum_{\tau=1}^t}
+
+\section{Main results}
+For given t define:
+\begin{itemize}
+	\item
+		$\xh{t} = \fracc{t} \sum_{\tau = 1}^t x^\tau$ - average of the joint actions vectors.
+	\item
+		$\uh{t}_i = \ot \sta u_i(x^\tau)$ - average payoff for player i.
+\end{itemize}
+
+\begin{theorem}
+	Let $\game$ be a socially concave game. If each player plays according to a procedure with external regret bound $\rit$, then at time t:
+	\begin{enumerate}[(i)]
+		\item
+			$\xh{t}$ is an $\ene{t}$, where $\epsilon^t = \fracc{\lambda_{min} t} \si\li \rit$
+		\item
+			Player i's average payoff is $\epsilon_i^t = \fracc{\li t} \sj \lj \rjt$ close to the payoff of the average of the joint actions vectors, i.e.
+			$$| \uh{t}_i - u_i(\xh{t})| \leq \epsilon_i^t$$
+	\end{enumerate}
+\end{theorem}
+\begin{proof}
+	We'll use 4 inequalities for the proof:
+	\begin{enumerate}
+		\item
+			Using the upper bound definition we get
+			\begin{align*}
+				\uh{t}_i &= \ot \sta u_i(x^\tau)\\
+					 &\geq \underset{y_i \in S_i}{\max} \ot \sta u_i\pr{y_i, x_{-i}^\tau} - \ot \rit \\
+					 &\underset{\text{max definition}}{\geq} \ot \sta u_i\pr{\bri,x_{-i}^\tau} - \ot \rit
+			\end{align*}
+			Where $\bri$ is player i's best response action to $\xh{t}_{-i}$.
+		\item
+			By \defi{sccg}.2 $\upi{y_i}{x_{-i}}$ is convex in $x_{-i}$, so for fixed action $y_i \in S_i$
+			$$\ot \sta \upi{y_i}{x_{-i}^\tau} \geq \upi{y_i}{\ot \sta x_{-i}^\tau} = \upi{y_i}{\xh{t}_{-i}}$$
+		\item
+			By definition of best response, $\forall y_i \in S_i$
+			$$\upi{BR_i(x_{-i})}{x_{-i}} \geq \upi{y_i}{x_{-i}}$$
+		\item
+			Using \defi{sccg}.1, $\exists \lambda \in \Delta^n$ and $ \forall i \in N : \li > 0$ s.t. $\si \li u_i(x)$ is concave in $x$
+			\begin{align*}
+				\Rightarrow \si \li u_i(\xh{t}) & = \si \li u_i \pr{\ot \sta x^\tau}\\
+								& \underset{\text{concavity}}{\geq} \ot \sta\si \li u_i(x^\tau)\\
+							       & \underset{\text{linearity}}{=} \si \li \pr{\ot \sta u_i(x^\tau)}\\
+							       & = \si \li \uh{t}_i
+			\end{align*}
+	\end{enumerate}
+
+	Using these 4 inequalities one by one we get
+	\begin{align*}
+		\si \li \uh{t}_i & \geq \si \li \mpr{\ot \sta \upi{\bri}{x_{-i}^\tau} - \ot \rit}\\
+				 & \geq \si \li \mpr{\upi{\bri}{\xh{t}_{-i}} - \ot \rit}\\
+				 & \geq \si \li \mpr{\upi{\xh{t}_i}{\xh{t}_{-i}} - \ot \rit}\\
+				 & =    \si \li \mpr{u_i(\xh{t}) - \ot \rit}\\
+				 & \geq \si \li \mpr{\uh{t}_i - \ot \rit}\\
+				 & =    \si \li \uh{t}_i - \ot \si \li \rit
+	\end{align*}
+	We got $a_1 \geq a_2 \geq a_3 \geq a_4 = a_5 \geq a_6 = a_7$.\\
+	$$a_3 - a_4 = \si \li \mpr{\upi{\bri}{\xh{t}_{-i}} - \upi{\xh{t}_i}{\xh{t}_{-i}}}$$
+	$$a_1 - a_7 = \ot \si \li \rit$$
+	By definition of player i's best response, $\forall y_i \in S_i$
+	$$\upi{\bri}{\xh{t}_{-i}} \geq \upi{\xh{t}_i}{\xh{t}_{-i}}$$
+	and $\li > 0$, so $a_3 - a_4$ is sum of non-negative elements.
+	$$\forall j \in N : a_3 - a_4 \geq \lj \mpr{\upj{\brj}{\xh{t}_{-j}} - u_j(\xh{t})}$$
+	$$\text{(the sum of non-negative elements is greater or equal than one element)}$$
+	$a_1 \geq a_3$ and $a_7 \leq a_4 \Rightarrow a_3 - a_4 \leq a_1 - a_7$
+	$$\Rightarrow \lj \mpr{\upj{\brj}{\xh{t}_{-j}} - u_j(\xh{t})} \leq \ot \si \li \rit$$
+	$$\Rightarrow \upj{\brj}{\xh{t}_{-j}} - u_j(\xh{t}) \leq \fracc{\lj t} \si \li \rit \leq \fracc{\lambda_{min} t} \si \li \rit$$
+	$$\lambda_{min} = \min_{j \in N} \lj$$
+	\begin{lemma}\label{bestr}
+		$a_i \text{ is } \ebr{} \text{ to } s_{-i} \iff \upi{BR_i(s_{-i})}{s_{-i}} - \upi{a_i}{s_{-i}} \leq \epsilon$
+	\end{lemma}
+	Using \lemi{bestr}: $\forall j \in N : \xh{t}_j \text{ is } \ebr{t}$\\
+	\indent$\Rightarrow \xh{t}$ is $\ene{t}$\\\\
+	First 3 inequalities gives
+	\begin{equation}\label{low}
+		\uh{t}_i - u_i(\xh{t}) \geq - \ot \rit
+	\end{equation}
+	Inequality 4 gives
+	\begin{equation}\label{up}
+		\begin{split}
+			\si \li \mpr{\uh{t}_i - u_i(\xh{t})} & \leq 0\\
+			\Rightarrow \uh{t}_j - u_j(\xh{t}) & \leq \fracc{\lj} \sum_{i\neq j} \li \mpr{u_i(\xh{t}) - \uh{t}_i}\\
+							   & \underset{\equi{low}}{\leq} \fracc{\lj t} \sum_{i\neq j} \li \rit\\
+					       & \underset{\rit \geq 0}{\leq} \fracc{\lj t} \si \li \rit
+		\end{split}
+	\end{equation}
+	Combining \equi{low} and \equi{up}
+	$$| \uh{t}_j - u_j(\xh{t}) | \leq \fracc{\lj t} \si \li \rit$$
+	$$\pr{\text{because } \fracc{\lj} \si \li \rit \geq \rjt}$$
+\end{proof}
+
+\subsection{Consequences}
+\begin{itemize}
+	\item
+		If all players play according to a no-regret algorithm, the average joint actions vector converges to Nash equilibrium and the payoff for each player converges to the payoff at that Nash equilibrium.
+
+	\item
+		If the no-regret algorithm is online gradient ascent \cite{infi}, which has regret of $\mathcal{O}(\sqrt{t})$, then after t steps the average joint actions vector is $\mathcal{O}(\frac{n}{\sqrt{t}})$-Nash equilibrium.
+\end{itemize}
+
+
+\subsubsection{Cournot Competition}
+Economic model used to describe competition between n firms that produce identical product. Each firm chooses the quantity of product it produces independently of each other and no cooperation is allowed. Its Nash equilibrium is called oligopoly (monopoly in when n=1), for the customers it's better than monopoly but worse than perfect competition (which can be achieved via Bertrand competition where companies choose the price and not the quantity).\\
+
+
+$G^C = \pr{N, \set{S_i}{i}{1}{n}, \set{c_i}{i}{1}{n}, p, \set{u_i}{i}{1}{n}}$
+\begin{itemize}
+	\item
+		$N = \spr{1,2,...,n}$
+	\item
+		$S_i = \mathbb{R}_+$ - production quantity
+	\item
+		$c_i: S_i \rightarrow \mathbb{R}_+$ - production cost\\
+		Assumed convex
+	\item
+		$p: S \rightarrow \mathbb{R}_+$ - product price\\
+		In Linear Cournot $p(s) = a - b \sum_{i = 1}^n s_i$
+	\item
+		$u_i(s) = p(s) s_i - c_i(s_i)$ - payoff
+\end{itemize}
+
+\def\si{\sum_{i=1}^n}
+
+
+\begin{theorem}\label{cour}
+	Linear Cournot is socially concave game.
+\end{theorem}
+
+\def\ai{\alpha_i}
+
+\subsubsection{Resource Allocation}
+n users competing for a share of resource with capacity $C > 0$ using bidding, no cooperation is allowed. The users know the allocation process for each them (and hence their payoff) depends on the bids of all users, what makes the process a game between n players \cite{allo}.\\
+
+$G^R = \pr{N, \set{W_i}{i}{1}{n}, C, \set{M_i}{i}{1}{n}, \set{\psi_i}{i}{1}{n}, \set{u_i}{i}{1}{n}}$
+\begin{itemize}
+	\item
+		$N = \spr{1,2,...,n}$
+	\item
+		$W_i = \mpr{a,b}, a \leq b$ - bid space
+	\item
+		$C \in \mathbb{R}_+$ - resource capacity\\
+		Assume $C=1$ for simplicity
+	\item
+		$M_i: W \rightarrow \mpr{0,C}$ - resource allocation function\\
+		$\forall s \in W: \si M_i(w) = C = 1$\\
+		In Linear Resource Allocation $M_i(w) = \frac{w_i^c}{\sum_{j=1}^n w_j^c}, c \in (0,1]$
+	\item
+		$\psi_i: \mpr{0,C} \rightarrow \mathbb{R}_+$ - (monetary) value assigned to given allocation\\
+		In Linear Resource Allocation $\psi_i(M_i(w)) = \ai M_i(w), \ai > 0$
+	\item
+		$u_i(w) = \psi_i \pr{M_i (w)} - w_i$ - payoff\\
+		In Linear Resource Allocation $u_i(w) = \ai M_i(w) - w_i$
+\end{itemize}
+
+\begin{theorem}\label{reso}
+	Linear Resource Allocation is socially concave game.
+\end{theorem}
+
+\def\ci{c_i \pr{S_i(w)}}
+
+\subsubsection{Supply Function Bidding}
+n firms compete to meet infinitely divisible but inelastic demand for a product (when change in price incurs relative small change in demand). Supply function bidding means that the firms declare the amount they would supply / produce at any positive price, then a clearing house (a mediator) chooses a price so supply equals demand. The payoff of each firm depends on price, hence depends on the bids of the other firms, what makes it a game \cite{supp}.\\
+
+
+$G^S = \pr{N, \set{W_i}{i}{1}{n}, D, \set{C_i}{i}{1}{n}, p, \set{S_i}{i}{1}{n}, \set{Q_i}{i}{1}{n}}$
+\begin{itemize}
+	\item
+		$N = \spr{1,2,...,n}$
+	\item
+		$W_i = \mathbb{R}_+$ - bid space (intuitively- revenue firm i willing to "forgo" at a given price)
+	\item
+		$D \in \mathbb{R}_+$ - (inelastic) demand
+	\item
+		$p(w) = \frac{\sj w_j}{(n-1)D} : W \rightarrow \mathbb{R}_+$ - product price
+	\item
+		$S_i(w) = D - \frac{w_i}{p(w)} : W \rightarrow \mathbb{R}$ - firm i supply\\
+		(if negative- the supply firm i buys instead of produces)
+	\item
+		$c_i : S_i \rightarrow \mathbb{R}_+$ - supply cost\\
+		Assume: continuous, $c_i(s_i) = 0$ if $s_i \leq 0$, $c_i(s_i)$ convex and strictly increasing for $s_i \geq 0$
+	\item
+		$Q_i (w) = p(w) S_i(w) - \ci$ - payoff
+
+\end{itemize}
+From Theorem 1 in \cite{supp} for $n > 2$ there exists Nash equilibrium $w^* \in W$ and it satisfies $\si w^*_i > 0$.
+
+\begin{theorem}\label{supp}
+	Supply Function Bidding is socially concave game.
+\end{theorem}
+
+
+\section{Critical review and conclusion}
+The paper introduces a new sub-class of games and shows that by employing no-regret algorithm we get to Nash equilibrium. Achieving equilibrium in certain games (say resource allocation of energy) is important (say for sustainability), and if we can prove the game is social we can have an algorithm to get there.
+
+The intuition to \defi{sccg}
+\begin{enumerate}
+	\item
+		lower bound the payoff of the average actions
+	\item
+		lower bound the average payoff for specific action
+\end{enumerate}
+
+Assumption 2 makes sense: it is so we can work with the average of the other players' actions.
+
+Assumption 1 is problematic because there isn't analytic way to find those $\lambda$s except from guessing.
+
+The paper also shows that 3 games are in this class, 2 are pretty simple (Cournot and resource allocation) while the 3rd (congestion control) is more complex. Finding another game in this class (supply function bidding) took me some time and is from the same authors as resource allocation, so I'm not sure how big / important is this class.
+
+
+\section{Open questions}
+The paper deals with the situation where the players are rational and non-cooperative so they employ no-regret algorithm. One way of further investigation is to attack the 'rationality'- what will happen when fraction of the players play for a goal other than maximizing their payoff? e.g. adversarial players: in the Cournot case Chinese firms that want to burden the American economy (and vise versa) or in congestion control hackers that want to slow down the network.
+Another way is to allow cooperation- players forming coalitions to maximize their joint payoff.
+
+
+\begin{thebibliography}{9}
+\bibitem{concaveg}
+Rosen, J. (1965). Existence and Uniqueness of Equilibrium Points for Concave N-Person Games. Econometrica, 33(3), 520-534. doi:10.2307/1911749
+\bibitem{infi}
+Zinkevich, Martin. (2003). Online Convex Programming and Generalized Infinitesimal Gradient Ascent. 2.
+\bibitem{allo}
+Johari, Ramesh \& Tsitsiklis, John. (2004). Efficiency Loss in a Network Resource Allocation Game. Math. Oper. Res.. 29. 407-435. 10.1287/moor.1040.0091.
+\bibitem{supp}
+Johari, Ramesh \& Tsitsiklis, John. (2011). Parameterized Supply Function Bidding: Equilibrium and Efficiency. Operations Research. 59. 10.2307/41316014.
+\bibitem{conv}
+Even-Dar, Eyal \& Mansour, Yishay \& Nadav, Uri. (2009). On the convergence of regret minimization dynamics in concave games. 523-532. 10.1145/1536414.1536486.
+\end{thebibliography}
+
+\section{Appendix}
+
+\underline{Proof of \lemi{soco}}\\
+	$u_i(x_i,x_{-i}) = \fracc{\li} \pr{\sum_{j =1}^{n} \lj u_j(x_i,x_{-i}) + \sum_{j\neq i} \lj \pr{-u_j(x_i,x_{-i})}}$\\
+	First expression concave in x from $\defi{sccg}.1$.\\
+	$u_j$ convex in $x_{-j}$ from $\defi{sccg}.2$ so convex in $x_i, (i \neq j) \Rightarrow -u_j$ concave in $x_i \Rightarrow$ second expression concave in $x_i$.\\
+	$\Rightarrow u_i(x_i,x_{-i})$ concave in $x_i$.\\
+	\qed
+
+
+
+
+
+
+\underline{Proof of \lemi{bestr}}
+	\begin{enumerate}
+		\item
+			$a_i \text{ is } \ebr{} \text{ to } s_{-i} \Rightarrow \forall y_i \in S_i$, in particular $y_i = BR_i(s_{-i})$
+			$$\upi{BR_i \pr{s_{-i}}}{s_{-i}} - \upi{a_i}{s_{-i}} \leq \epsilon$$
+
+		\item
+			$\upi{BR_i \pr{s_{-i}}}{s_{-i}} - \upi{a_i}{s_{-i}} \leq \epsilon$, from best response definition, $\forall y_i \in S_i$
+			$$\upi{y_i}{s_{-i}} \leq \upi{BR_i(s_{-i})}{s_{-i}}$$
+			$$\Rightarrow \upi{y_i}{s_{-i}} - \upi{a_i}{s_{-i}} \leq \upi{BR_i(s_{-i})}{s_{-i}} - \upi{a_i}{s_{-i}} \leq \epsilon$$
+			$\Rightarrow x_i \text{ is } \ebr{} \text{ to } s_{-i}$
+
+
+	\end{enumerate}
+	\qed
+
+
+
+
+
+
+\underline{Proof of \thei{cour}}
+	\begin{enumerate}
+		\item
+			Take $\li = \fracc{n}$:
+			\begin{align*}
+				g(s) & = \sum_{i=1}^n \fracc{n} u_i(s)\\
+				     & = \fracc{n} \sum_{i=1}^n \mpr{a - b \sum_{i=1}^n s_i}s_i - c_i(s_i)\\
+				     & = \fracc{n} \mpr{ a \si s_i - b \pr{\si s_i}^2 - \si c_i(s_i)}
+			\end{align*}
+			$c_i(s_i)$ convex in $s_i$ and independent on $i$, so the hessian is positive definite $\Rightarrow c_i(s_i)$ convex in $s$.\\
+			$\pr{\si s_i}^2$ convex in $s \pr{\text{the hessian is a positive semi-definite matrix of 2s}}$.\\
+			$\Rightarrow -c_i(s_i)$ and $-b\pr{\si s_i}^2$ concave in $s$.\\
+			$a\si s_i$ linear in $s$ so also concave.\\\\
+			$\Rightarrow g(s)$ concave in $s$.
+		\item
+			\begin{align*}
+				u_i(s) & = p(s)s_i - c_i(s_i)\\
+				       & = \pr{a - b\si s_i}s_i - c_i(s_i)\\
+				       & = as_i - b s_i \pr{s_i + \sum s_{-i}} - c_i(s_i)
+			\end{align*}
+			$-bs_i \pr{s_i + \sum s_{-i}}$ linear in $s_{-i} \Rightarrow$ convex in $s_{-i} \Rightarrow u_i$ convex in $s_{-i}$.
+	\end{enumerate}
+	\qed
+
+
+
+\def\sj{\sum_{j=1}^n}
+\def\sai{\sj \fracc{\alpha_j}}
+\def\wic{w_i^c}
+\def\wmic{w_{-i}^c}
+\def\lwmic{\textbf{1}^T\wmic}
+\def\fai{\frac{\fracc{\ai}}{\sai}}
+
+
+
+
+
+\underline{Proof of \thei{reso}}\\
+Assume $\forall i \in N, w_i \geq 0$ and $\si w_i > 0$\\
+Note that in Linear Resource Allocation $u_i(w) = \ai \frac{\wic}{\sj w_j^c} - w_i$
+\begin{enumerate}
+	\item
+		Take $\li = \fai$:
+		\begin{align*}
+			g(w) & = \si \frac{\fracc{\ai}}{\sum_{j=1}^n \fracc{\alpha_j}} u_i(w)\\
+			     & = \fracc{\sai} \si \mpr{\frac{\wic}{\sj w_j^c} - \frac{w_i}{\ai}}\\
+			     & = \fracc{\sai} \pr{\frac{\si w_i^c}{\sj w_j^c} - \fracc{\ai} \si w_i}\\
+			     & = \fracc{\sai} \pr{1 - \fracc{\ai} \si w_i}
+		\end{align*}
+		$g(w)$ linear in $w \Rightarrow$ concave in $w$.
+
+	\item
+		I'll prove this part with 2 different approaches (a and b):
+		\begin{enumerate}
+			\item
+			Define
+			\begin{itemize}
+				\item
+					$\wmic = \pr{w_1^c,\cdots,w_{i-1}^c,w_{i+1}^c,\cdots,w_n^c}^T$
+				\item
+					$W_{-i}^c$ matrix s.t. $\forall r,j \in N-\{i\}$:
+					$$W_{-i}^c(r,j) = \delta_{r,j} w_j^c$$
+					Note $W_{-i}^c$ is PSD (diagonal matrix with non-negative diagonal).
+			\end{itemize}
+			$\Rightarrow u_i(w) = u_i(w_i,w_{-i}) = \ai \frac{\wic}{\wic + \lwmic} - w_i$\\\\
+			We'll show $u_i(w)$ convex in $w_{-i}$:\\
+			$$\frac{\partial u_i(w_i,w_{-i})}{\partial w_{-i}} = -\ai\wic c \pr{\wic + \lwmic}^{-2} w_{-i}^{c-1}$$
+			\begin{align*}
+				\frac{\partial^2 u_i(w_i, w_{-i})}{\partial^2 w_{-i}} = & 2\ai \wic c \pr{\wic + \lwmic}^{-3} w_{-i}^{c-1} \pr{w_{-i}^{c-1}}^T\\
+											& + (1-c)\ai \wic c \pr{\wic + \lwmic}^2 W_{-i}^{c-2}
+			\end{align*}
+
+			\begin{itemize}
+				\item
+					$w_{-i}^{c-1} \pr{w_{-i}^{c-1}}^T$ is PSD $\left( \forall x \in \mathbb{R}^{n-1}: x^T y y^T x = \left\lVert y^T x \right\rVert \geq 0 \right)$
+				\item
+					$W_{-i}^{c-2}$ is PSD
+				\item
+					$\ai > 0$
+				\item
+					$\wic \geq 0$
+				\item
+					$\pr{\wic + \lwmic} = \si \wic > 0$
+				\item
+					$c\in (0,1]$
+			\end{itemize}
+			$\Rightarrow u_i(w)$ convex in $w_{-i}$.\\\\
+
+
+	\item
+		Let $k\in W_i$:\\
+		(note: $k+\sum_{j \neq i} w_j > 0$)\\\\
+		$g_k(x) := \sum_{j=1}^{n-1} x_j^c : \mathbb{R}_+^{n-1} \rightarrow \mathbb{R}_+$\\
+		$g_k(x)$ concave in x $\Rightarrow \forall x,y \in \mathbb{R}_+^{n-1}, \beta \in [0,1] : g_k \left( \beta x + (1-\beta)y \right) \geq \beta g_k(x) + (1-\beta)g_k(y)$\\
+
+
+		$f_k(x) := \frac{\ai}{k + x} - k : \mathbb{R}_+ \rightarrow \mathbb{R}_+$\\
+		*$\left( \text{note $f_k(x)$ strictly decreasing as $x$ gets bigger} \right)$ \\
+		$f_k''(x) = \frac{2\ai}{(k+x)^3} > 0 \Rightarrow f_k(x)$ convex in $x \Rightarrow \forall x \in \mathbb{R}_+, \gamma \in [0,1] : f_k \left( \gamma x + (1-\gamma)y \right) \leq \gamma f_k(x) + (1-\gamma) f_k(y)$\\
+
+
+		$u_k (w_{-i}) := u(k,w_{-i}) = f_k(g_k(w_{-i})) : \mathbb{R}_+^{n-1} \rightarrow \mathbb{R}_+$\\
+		We'll show $u_k(\cdot)$ convex for $\mathbb{R}_+^{n-1}$:
+		\begin{align*}
+			\forall x,y \in \mathbb{R}_+^{n-1}, \lambda \in [0,1] :\\
+			u_k\left(\lambda x + (1-\lambda) y \right) & = f_k \left( g_k(\lambda x + (1-\lambda) y) \right)\\
+															   & \underset{*}{\leq} f_k \left( \lambda g_k(x) + (1-\lambda) g_k(y) \right)\\
+															   & \leq \lambda f_k \pr{g_k(x)} + (1-\lambda) f_k \pr{g_k(y)}\\
+															   & = \lambda u_k(x) + (1-\lambda) u_k(y)
+		\end{align*}
+
+	\end{enumerate}
+\end{enumerate}
+\qed
+
+
+\underline{Proof of \thei{supp}}\\
+Assume $\si w_i > 0$\\
+
+$Q_i (w) = p(w) D - w_i - \ci = \fracc{n-1}\sj w_j - w_i - \ci$\\\\
+$\fracc{n-1} \sj w_j - w_i$ linear in $w_i$\\
+$\ci$ convex in $w_i \Rightarrow -\ci$ concave in $w_i$\\
+$\Rightarrow Q_i(w)$ concave in $w_i \Rightarrow G^S$ concave game.
+
+\begin{enumerate}
+	\item
+		Take $\li = \fracc{n}$:\\
+		$g(w) = \si \li Q_i(w) = \fracc{n} \si Q_i(w)$\\\\
+		$\fracc{n-1} \sj w_j - w_i$ linear in $w$\\
+		$-\ci$ concave in $w_i$ for each i and independent on i $\Rightarrow$ concave in $w$\\
+		$\Rightarrow g(w)$ concave in $w$
+	\item
+		$Q_i(w) = Q_i(w_i,w_{-i}) = \fracc{n-1} \sum_{i\neq j} w_j + \frac{n}{n-1} w_i - \ci$\\
+		$\sum_{i\neq j} w_j$ linear in $w_{-i}$
+		$\Rightarrow Q_i(w)$ convex in $w_{-i}$
+\end{enumerate}
+\qed
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
